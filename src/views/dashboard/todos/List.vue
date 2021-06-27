@@ -34,7 +34,7 @@
                                 <td>{{task.deadline? $utils.methods.fromNow(task.deadline) : 'Not specified' }}</td>
                                 <td>
                                     <button class="btn btn-sm btn-primary" @click="$refs.TodoForm.updateAction(task)">Edit</button>
-                                    <button class="btn btn-sm btn-danger ml-2" @click="deleteTask(task.id)">Delete</button>
+                                    <button class="btn btn-sm btn-danger ml-2" @click="destroyTask(task.id)">Delete</button>
                                 </td>
                             </tr>
                             <tr v-if="!tasks.length">
@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        <TodoForm ref="TodoForm" @createTask="createTask" @updateTask="updateTask"></TodoForm>
+        <TodoForm ref="TodoForm" @createTask="createTask" @updateTask="editTask"></TodoForm>
 
     </div>
 </template>
@@ -59,6 +59,7 @@
 <script>
 import TodoForm from '@/components/todos/TodoForm'
 import taskRepository from '@/repositories/taskRepository'
+import { mapActions, mapGetters } from 'vuex'
 
 export default {
     components:{
@@ -66,22 +67,33 @@ export default {
     },
     data() {
         return {
-            tasks: [],
         }
     },
 
     created(){
-        this.getTasks()
+        // this.getTasks()
+        this.$store.dispatch('task/bindTasks')
+    },
+
+    computed: {
+        // ...mapGetters('task', {
+        //     tasks: 'getTasks'
+        // })
+        tasks(){
+            return this.$store.getters['task/getTasks'].map( task => ({...task, id: task.id}))
+        }
     },
 
     methods:{
-        getTasks(){
-            this.tasks = taskRepository.getTasks().tasks
-        },
+        ...mapActions('task', {
+           storeTask: 'storeTask',
+           updateTask: 'updateTask', 
+           deleteTask: 'deleteTask',
+        }),
+
         createTask(data){
-            taskRepository.addDocument(data).then(() => {
+            this.storeTask(data).then(() => {
                 this.$message.success('Task created')
-                this.tasks.splice(0, 0, data)
                 this.$refs.TodoForm.hideModal()
             })
             .catch((e) => {
@@ -92,14 +104,10 @@ export default {
            
         },
 
-        updateTask(data){
-            taskRepository.updateDocument(data, data.id)
+        editTask(data){
+            this.updateTask(data)
             .then(() => {
                 this.$message.success('Task updated')
-                let taskIndex = this.tasks.findIndex(({id}) => id === data.id)
-                if(taskIndex > -1){
-                    this.$set(this.tasks, taskIndex, data)
-                }
                 this.$refs.TodoForm.hideModal()
 
             })
@@ -110,14 +118,14 @@ export default {
            
         }, 
 
-        deleteTask(taskId){
-            taskRepository.deleteDocument(taskId)
+        destroyTask(taskId){
+            this.deleteTask(taskId)
             .then(() => {
                 this.$message.success('Task Delete')
-                let taskIndex = this.tasks.findIndex(({id}) => id === taskId)
-                if(taskIndex > -1){
-                    this.tasks.splice(taskIndex, 1)
-                }
+            })
+            .catch((e) => {
+                this.$message.error("Something wrong happened")
+                console.error(e);
             })
         }
     }

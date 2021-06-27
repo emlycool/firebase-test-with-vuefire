@@ -59,12 +59,11 @@ export default class baseRepository {
 
     deleteDocument(id){
         return new Promise( (resolve, reject) => {
-
             db.collection(this.collectionName).doc(id).delete().then(() => {
             resolve()
             }).catch((error) => {
                 console.error("Error removing document: ", error);
-            resolve(new Error("Error writing document: "+ error.message))
+                resolve(new Error("Error writing document: "+ error.message))
 
             });
         })
